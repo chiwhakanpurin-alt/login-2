@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>99% Realistic Physics Lamp Login</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        :root {
+            --on: 0;
+            --bg-color: #0f1113;
+            --lamp-color: #e0e0e0;
+            --glow-color: rgba(255, 225, 120, 0.4);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body {
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            transition: background-color 0.8s ease;
+        }
+
+        .container {
+            display: flex;
+            align-items: center;
+            gap: 120px;
+            perspective: 1200px;
+        }
+
+        /* --- ตัวโคมไฟ --- */
+        .lamp-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .lamp-head {
+            width: 170px;
+            height: 75px;
+            background: var(--lamp-color);
+            border-radius: 100px 100px 15px 15px;
+            position: relative;
+            z-index: 25;
+            box-shadow: inset 0 -5px 15px rgba(0,0,0,0.15);
+        }
+
+        .lamp-stand {
+            width: 18px;
+            height: 220px;
+            background: var(--lamp-color);
+            border-radius: 0 0 10px 10px;
+            z-index: 25;
+        }
+
+        /* --- แสงไฟสมจริง --- */
+        .light-bulb {
+            position: absolute;
+            top: 60px;
+            width: 90px;
+            height: 25px;
+            background: #fff;
+            border-radius: 50%;
+            filter: blur(12px);
+            opacity: var(--on);
+            transition: opacity 0.2s ease;
+            z-index: 20;
+        }
+
+        .light-cone {
+            position: absolute;
+            top: 65px;
+            width: 500px;
+            height: 700px;
+            background: radial-gradient(ellipse at top, var(--glow-color) 0%, rgba(255, 230, 150, 0.02) 60%, transparent 80%);
+            clip-path: polygon(43% 0%, 57% 0%, 100% 100%, 0% 100%);
+            filter: blur(30px);
+            opacity: var(--on);
+            pointer-events: none;
+            z-index: 5;
+            transition: opacity 0.5s ease-out;
+        }
+
+        /* --- ระบบเชือก SVG (Physics Setup) --- */
+        .rope-svg {
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            width: 100px;
+            height: 250px;
+            z-index: 40;
+            overflow: visible;
+            transform-origin: 50% 0%; /* จุดหมุนอยู่ที่โคนเชือก */
+        }
+
+        #pull-hitbox { cursor: pointer; }
+
+        /* --- ฟอร์ม Login Glassmorphism --- */
+        .login-card {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 45px;
+            border-radius: 28px;
+            width: 360px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+            opacity: 0;
+            transform: translateX(40px) scale(0.95);
+            pointer-events: none;
+            transition: all 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        .login-card.active {
+            opacity: 1;
+            transform: translateX(0) scale(1);
+            pointer-events: all;
+        }
+
+        h2 { text-align: center; margin-bottom: 35px; font-weight: 400; color: #fff; letter-spacing: 2px; }
+        .input-group { margin-bottom: 22px; }
+        label { display: block; font-size: 10px; text-transform: uppercase; color: #777; margin-bottom: 8px; letter-spacing: 1px; }
+        input {
+            width: 100%; padding: 15px; background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 14px;
+            color: white; outline: none; transition: 0.3s;
+        }
+        input:focus { border-color: #d4af37; background: rgba(0,0,0,0.5); }
+
+        .btn-signin {
+            width: 100%; padding: 16px; margin-top: 15px;
+            background: linear-gradient(135deg, #d4af37, #f7df8b);
+            border: none; border-radius: 14px; color: #111;
+            font-weight: 800; cursor: pointer; transition: 0.3s; text-transform: uppercase;
+        }
+        .btn-signin:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(212, 175, 55, 0.4); }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="lamp-wrapper">
+        <div class="lamp-head"></div>
+        <div class="lamp-stand"></div>
+        <div class="light-bulb"></div>
+        <div class="light-cone"></div>
+
+        <svg class="rope-svg" viewBox="0 0 100 300">
+            <g id="rope-physics-group">
+                <path id="rope-path" d="M50,0 L50,150" stroke="#888" stroke-width="2.5" fill="none" stroke-linecap="round" />
+                <g id="knob-group">
+                    <circle cx="50" cy="150" r="10" fill="#d4af37" />
+                    <circle cx="50" cy="150" r="4" fill="rgba(255,255,255,0.3)" />
+                </g>
+            </g>
+            <rect id="pull-hitbox" x="20" y="0" width="60" height="200" fill="transparent"></rect>
+        </svg>
+    </div>
+
+    <div class="login-card" id="loginCard">
+        <h2>LOGIN</h2>
+        <div class="input-group">
+            <label>Identification</label>
+            <input type="text" placeholder="username">
+        </div>
+        <div class="input-group">
+            <label>Passcode</label>
+            <input type="password" placeholder="••••••••">
+        </div>
+        <button class="btn-signin">Authorize</button>
+    </div>
+</div>
+
+<script>
+    let isOn = false;
+    const loginCard = document.getElementById('loginCard');
+    const pullHitbox = document.getElementById('pull-hitbox');
+    const ropePath = document.getElementById('rope-path');
+    const knobGroup = document.getElementById('knob-group');
+    const ropeSVG = document.querySelector('.rope-svg');
+    const root = document.documentElement;
+
+    pullHitbox.addEventListener('mousedown', () => {
+        // จังหวะกดค้าง: ยืดเชือกตามแรงกด
+        gsap.to(ropePath, { attr: { d: "M50,0 L50,190" }, duration: 0.1, ease: "power2.out" });
+        gsap.to(knobGroup, { y: 40, duration: 0.1, ease: "power2.out" });
+    });
+
+    pullHitbox.addEventListener('click', () => {
+        isOn = !isOn;
+
+        // 1. ADVANCED ROPE PHYSICS (The 99% Realism)
+        const tl = gsap.timeline();
+        
+        // จังหวะปล่อย: เชือกดีดกลับ (Snap Back) และสั่น (Oscillation)
+        tl.to(ropePath, { 
+            attr: { d: "M50,0 L50,150" }, 
+            duration: 1.5, 
+            ease: "elastic.out(1.5, 0.2)" 
+        }, 0);
+        
+        tl.to(knobGroup, { 
+            y: 0, 
+            duration: 1.5, 
+            ease: "elastic.out(1.5, 0.2)" 
+        }, 0);
+
+        // แรงเหวี่ยงลูกตุ้ม (Pendulum Swing)
+        // เมื่อดึง เชือกจะไม่ได้แค่ขึ้นลง แต่จะเหวี่ยงตามแรงดึงเฉียงเล็กน้อย
+        gsap.fromTo(ropeSVG, 
+            { rotation: 18 }, 
+            { 
+                rotation: 0, 
+                duration: 3, 
+                ease: "elastic.out(1.1, 0.15)" // ความถี่สูงในช่วงแรกแล้วค่อยๆ สงบ
+            }
+        );
+
+        // 2. LIGHTING & ENVIRONMENT
+        root.style.setProperty('--on', isOn ? 1 : 0);
+        
+        if (isOn) {
+            loginCard.classList.add('active');
+            gsap.to("body", { backgroundColor: "#1a1c1e", duration: 0.6 });
+        } else {
+            loginCard.classList.remove('active');
+            gsap.to("body", { backgroundColor: "#0f1113", duration: 0.6 });
+        }
+    });
+</script>
+
+</body>
+</html>
